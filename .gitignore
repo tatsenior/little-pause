@@ -1,0 +1,15 @@
+artifacts/
+tests/
+*.exe
+*.zip
+*.log
+*.tmp
+*-test.txt
+startup-error.txt
+preview*.png
+test-background.png
+.vs/
+.codex/
+.agents/
+.env
+.env.*
