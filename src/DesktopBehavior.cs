@@ -26,7 +26,7 @@ namespace LittlePause {
             point=Clamp(point,size,area);if(side==DockSide.Left)point.X=area.Left;if(side==DockSide.Right)point.X=area.Right-size.Width;if(side==DockSide.Top)point.Y=area.Top;if(side==DockSide.Bottom)point.Y=area.Bottom-size.Height;return point;
         }
         public static Point Concealed(Point anchor,Size size,Rect area,DockSide side){
-            const double peek=14;switch(side){case DockSide.Left:return new Point(area.Left-size.Width+peek,anchor.Y);case DockSide.Right:return new Point(area.Right-peek,anchor.Y);case DockSide.Top:return new Point(anchor.X,area.Top-size.Height+peek);case DockSide.Bottom:return new Point(anchor.X,area.Bottom-peek);default:return anchor;}
+            const double gap=2;switch(side){case DockSide.Left:return new Point(area.Left-size.Width-gap,anchor.Y);case DockSide.Right:return new Point(area.Right+gap,anchor.Y);case DockSide.Top:return new Point(anchor.X,area.Top-size.Height-gap);case DockSide.Bottom:return new Point(anchor.X,area.Bottom+gap);default:return anchor;}
         }
         public static Rect Proximity(Point anchor,Size size,Rect area,DockSide side){
             switch(side){case DockSide.Left:return new Rect(area.Left,anchor.Y,18,size.Height);case DockSide.Right:return new Rect(area.Right-18,anchor.Y,18,size.Height);case DockSide.Top:return new Rect(anchor.X,area.Top,size.Width,18);case DockSide.Bottom:return new Rect(anchor.X,area.Bottom-18,size.Width,18);default:return Rect.Empty;}
@@ -120,6 +120,7 @@ namespace LittlePause {
             var controls=new StackPanel {Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};
             controls.Children.Add(Button("−",delegate{AdjustSettingScale(1/1.1);},false));scaleReadout=Text((prefs.CardScale*100).ToString("0")+"%",11,white);scaleReadout.Margin=new Thickness(10,0,10,0);controls.Children.Add(scaleReadout);controls.Children.Add(Button("+",delegate{AdjustSettingScale(1.1);},false));var reset=Button("重置",delegate{SetSettingScale(1);},false);reset.Margin=new Thickness(8,0,0,0);controls.Children.Add(reset);row.Children.Add(controls);panel.Children.Add(row);
             var hide=new CheckBox {Content="贴边自动收纳，鼠标靠近滑出",Foreground=white,IsChecked=prefs.AutoHide,Margin=new Thickness(0,2,0,10)};hide.Checked+=delegate{prefs.AutoHide=true;FinishUserMove();Save();};hide.Unchecked+=delegate{prefs.AutoHide=false;DetachDock();Save();};dockSetting=hide;panel.Children.Add(hide);
+            AddStartupSetting(panel);
             var hint=Text("预设按比例缩放；自由尺寸可分别拖动宽高，字号不变，小窗口可滚动。Ctrl + 滚轮也可调整大小。",11,muted);hint.TextWrapping=TextWrapping.Wrap;hint.Margin=new Thickness(0,0,0,14);panel.Children.Add(hint);
             UpdateScaleReadout();
         }

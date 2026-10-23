@@ -1,4 +1,5 @@
 artifacts/
+dist/
 tests/
 *.exe
 *.zip

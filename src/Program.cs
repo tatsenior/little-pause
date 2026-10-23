@@ -42,6 +42,7 @@ namespace LittlePause {
         [DataMember] public string Image = "";
         [DataMember] public double ImageOpacity = .65;
         [DataMember] public double Shade = .60;
+        [DataMember] public double ControlTransparency;
         [DataMember] public string Message = "休息一下，喝杯水吧。";
         [DataMember] public int Seconds = 1500;
         [DataMember] public bool Pinned = true;
@@ -109,20 +110,29 @@ namespace LittlePause {
         readonly SolidColorBrush white = new SolidColorBrush(Color.FromRgb(236, 236, 236));
         readonly SolidColorBrush muted = new SolidColorBrush(Color.FromRgb(165, 165, 165));
         readonly SolidColorBrush field = new SolidColorBrush(Color.FromArgb(225, 47, 47, 47));
+        readonly SolidColorBrush controlOutline=new SolidColorBrush(Color.FromRgb(58,58,58));
+        readonly SolidColorBrush switchOffSurface=new SolidColorBrush(Color.FromRgb(56,56,56));
+        readonly SolidColorBrush switchOnSurface=new SolidColorBrush(Color.FromRgb(53,92,77));
+        Slider controlTransparencySlider;
         bool quitting, editing, completed;
         string activeMessage;
         public Widget(bool smokeTest) {
             smoke = smokeTest; prefs = smoke ? new Preferences() : Storage.Read();
+            startup=new StartupRegistration();
+#if DIAGNOSTICS
+            if(smoke)startup=new MemoryStartupRegistration();
+#endif
             if(!prefs.TypographyDefaultsV2){if(prefs.TimerFontSize==43||prefs.TimerFontSize<=0)prefs.TimerFontSize=48;prefs.TypographyDefaultsV2=true;}
             if(!prefs.DesktopOptionsSaved){prefs.AutoHide=false;prefs.DesktopOptionsSaved=true;}
             Title = "小憩 · 桌面倒计时"; Width = 360; Height = 675; ResizeMode = ResizeMode.NoResize;
             WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent; Topmost = prefs.Pinned;ShowInTaskbar=false;
             FontFamily = new FontFamily("Microsoft YaHei UI"); FontSize = 14; Foreground = white;
+            InitializeControlTransparency();Resources.Add("ControlSurfaceBrush",field);Resources.Add("ControlOutlineBrush",controlOutline);Resources.Add("SwitchOffSurfaceBrush",switchOffSurface);Resources.Add("SwitchOnSurfaceBrush",switchOnSurface);
             Resources.Add(typeof(ComboBox), System.Windows.Markup.XamlReader.Parse(@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='{x:Type ComboBox}'>
               <Setter Property='Foreground' Value='#F2F4F9'/><Setter Property='Background' Value='#303030'/><Setter Property='Padding' Value='10,4'/>
               <Setter Property='ItemContainerStyle'><Setter.Value><Style TargetType='ComboBoxItem'><Setter Property='Foreground' Value='#F2F4F9'/><Setter Property='Background' Value='#303030'/><Setter Property='Padding' Value='10,8'/><Style.Triggers><Trigger Property='IsHighlighted' Value='True'><Setter Property='Background' Value='#454545'/></Trigger><Trigger Property='IsSelected' Value='True'><Setter Property='Background' Value='#404040'/></Trigger></Style.Triggers></Style></Setter.Value></Setter>
               <Setter Property='Template'><Setter.Value><ControlTemplate TargetType='ComboBox'><Grid>
-                <ToggleButton Focusable='False' IsChecked='{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}'><ToggleButton.Template><ControlTemplate TargetType='ToggleButton'><Border Background='#303030' BorderBrush='#3A3A3A' BorderThickness='1' CornerRadius='8'/></ControlTemplate></ToggleButton.Template></ToggleButton>
+                <ToggleButton Focusable='False' IsChecked='{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}'><ToggleButton.Template><ControlTemplate TargetType='ToggleButton'><Border Name='ControlSurface' Background='{DynamicResource ControlSurfaceBrush}' BorderBrush='{DynamicResource ControlOutlineBrush}' BorderThickness='1' CornerRadius='8'/></ControlTemplate></ToggleButton.Template></ToggleButton>
                 <ContentPresenter Margin='10,0,27,0' VerticalAlignment='Center' IsHitTestVisible='False' Content='{TemplateBinding SelectionBoxItem}'/>
                 <TextBlock Text='⌄' Foreground='#C0CCDA' HorizontalAlignment='Right' VerticalAlignment='Center' Margin='0,0,10,0' IsHitTestVisible='False'/>
                 <Popup Name='PART_Popup' IsOpen='{TemplateBinding IsDropDownOpen}' Placement='Bottom' AllowsTransparency='True' Focusable='False'><Border MinWidth='{Binding ActualWidth,RelativeSource={RelativeSource TemplatedParent}}' Background='#303030' BorderBrush='#3A3A3A' BorderThickness='1' CornerRadius='8' Padding='2'><ScrollViewer MaxHeight='280'><ItemsPresenter/></ScrollViewer></Border></Popup>
@@ -130,7 +140,7 @@ namespace LittlePause {
             Resources.Add(typeof(Slider),System.Windows.Markup.XamlReader.Parse(@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Slider'><Setter Property='Height' Value='22'/><Setter Property='Template'><Setter.Value><ControlTemplate TargetType='Slider'><Grid Background='Transparent'><Border Height='3' Background='#494949' CornerRadius='2' VerticalAlignment='Center'/><Track Name='PART_Track' Minimum='{TemplateBinding Minimum}' Maximum='{TemplateBinding Maximum}' Value='{TemplateBinding Value}'><Track.DecreaseRepeatButton><RepeatButton Command='{x:Static Slider.DecreaseLarge}' Focusable='False'><RepeatButton.Template><ControlTemplate TargetType='RepeatButton'><Border Background='#D5D5D5' Height='3' CornerRadius='2'/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.DecreaseRepeatButton><Track.Thumb><Thumb Width='14' Height='14'><Thumb.Template><ControlTemplate TargetType='Thumb'><Ellipse Fill='#ECECEC'/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton Command='{x:Static Slider.IncreaseLarge}' Focusable='False'><RepeatButton.Template><ControlTemplate TargetType='RepeatButton'><Border Background='Transparent'/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.IncreaseRepeatButton></Track></Grid></ControlTemplate></Setter.Value></Setter></Style>"));
             Resources.Add(typeof(System.Windows.Controls.Primitives.ScrollBar),System.Windows.Markup.XamlReader.Parse(@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='ScrollBar'><Setter Property='MinWidth' Value='0'/><Setter Property='Width' Value='5'/><Setter Property='Template'><Setter.Value><ControlTemplate TargetType='ScrollBar'><Track Name='PART_Track' Orientation='Vertical' IsDirectionReversed='True' Minimum='{TemplateBinding Minimum}' Maximum='{TemplateBinding Maximum}' Value='{TemplateBinding Value}' ViewportSize='{TemplateBinding ViewportSize}'><Track.Thumb><Thumb><Thumb.Template><ControlTemplate TargetType='Thumb'><Border CornerRadius='3' Background='#646464' Margin='1,2'/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.DecreaseRepeatButton><RepeatButton Command='{x:Static ScrollBar.PageUpCommand}'><RepeatButton.Template><ControlTemplate TargetType='RepeatButton'><Border Background='Transparent'/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.DecreaseRepeatButton><Track.IncreaseRepeatButton><RepeatButton Command='{x:Static ScrollBar.PageDownCommand}'><RepeatButton.Template><ControlTemplate TargetType='RepeatButton'><Border Background='Transparent'/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.IncreaseRepeatButton></Track></ControlTemplate></Setter.Value></Setter></Style>"));
             Resources.Add(typeof(TextBox),System.Windows.Markup.XamlReader.Parse(@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='TextBox'><Setter Property='FocusVisualStyle' Value='{x:Null}'/><Setter Property='Template'><Setter.Value><ControlTemplate TargetType='TextBox'><Border Name='InputSurface' CornerRadius='10' Background='{TemplateBinding Background}' BorderBrush='Transparent' BorderThickness='1'><ScrollViewer Name='PART_ContentHost' VerticalAlignment='{TemplateBinding VerticalContentAlignment}' HorizontalScrollBarVisibility='Hidden' VerticalScrollBarVisibility='Hidden'/></Border><ControlTemplate.Triggers><Trigger Property='IsMouseOver' Value='True'><Setter TargetName='InputSurface' Property='BorderBrush' Value='#454545'/></Trigger><Trigger Property='IsKeyboardFocused' Value='True'><Setter TargetName='InputSurface' Property='BorderBrush' Value='#777777'/></Trigger><Trigger Property='IsEnabled' Value='False'><Setter TargetName='InputSurface' Property='Opacity' Value='.55'/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>"));
-            Build(); ApplyTheme(); ApplyTypography(); ApplyLayout();
+            RegisterToggleStyle();Build(); ApplyTheme(); ApplyControlTransparency();ApplyTypography(); ApplyLayout();
             PreviewKeyDown += delegate(object sender, KeyEventArgs e) { if(e.Key==Key.Escape&&settingsOpen){CloseSettings();e.Handled=true;} };
             var area = DesktopWorkArea();
             bool unplaced=prefs.Left==-1&&prefs.Top==-1;
@@ -327,6 +337,7 @@ namespace LittlePause {
             var tip=Text("选择图片后可调节下方效果。图片自动居中裁剪，配色随图片调整。",11,muted);tip.TextWrapping=TextWrapping.Wrap;panel.Children.Add(tip);
             AddSlider(panel,"背景图片透明度",0,1,prefs.ImageOpacity,delegate(double v){prefs.ImageOpacity=v;ApplyTheme();});
             AddSlider(panel,"暗色遮罩强度（增强文字对比）",.25,.9,prefs.Shade,delegate(double v){prefs.Shade=v;ApplyTheme();});
+            AddControlTransparencySetting(panel);
             var divider=new Border {Height=1,Background=new SolidColorBrush(Color.FromArgb(30,255,255,255)),Margin=new Thickness(0,22,0,18)};panel.Children.Add(divider);
             panel.Children.Add(Text("通知",14,white));
             var sound=new CheckBox {Content="通知提示音",IsChecked=prefs.Sound,Foreground=white,Margin=new Thickness(0,14,0,10)};sound.Checked+=delegate {prefs.Sound=true;};sound.Unchecked+=delegate {prefs.Sound=false;};panel.Children.Add(sound);
@@ -424,7 +435,7 @@ namespace LittlePause {
 #else
             bool smoke=false;
 #endif
-            bool created;using(var mutex=new Mutex(true,"Local\\LittlePause.Desktop.Timer",out created)) {if(!created&&!smoke){MessageBox.Show("小憩已在运行，请双击系统托盘中的图标打开。","小憩");return;}try{Notifications.SetCurrentProcessExplicitAppUserModelID(Notifications.AppId);var app=new Application();app.DispatcherUnhandledException+=delegate(object s,DispatcherUnhandledExceptionEventArgs e){Storage.Log(e.Exception.ToString());MessageBox.Show("操作未完成："+e.Exception.Message,"小憩");e.Handled=true;};app.Run(new Widget(smoke));}catch(Exception e){Storage.Log(e.ToString());File.WriteAllText("startup-error.txt",e.ToString());Environment.ExitCode=1;}}
+            bool created;using(var mutex=new Mutex(true,"Local\\LittlePause.Desktop.Timer",out created)) {if(!created&&!smoke){if(!args.Contains("--autostart"))MessageBox.Show("小憩已在运行，请双击系统托盘中的图标打开。","小憩");return;}try{Notifications.SetCurrentProcessExplicitAppUserModelID(Notifications.AppId);var app=new Application();app.DispatcherUnhandledException+=delegate(object s,DispatcherUnhandledExceptionEventArgs e){Storage.Log(e.Exception.ToString());MessageBox.Show("操作未完成："+e.Exception.Message,"小憩");e.Handled=true;};app.Run(new Widget(smoke));}catch(Exception e){Storage.Log(e.ToString());File.WriteAllText("startup-error.txt",e.ToString());Environment.ExitCode=1;}}
         }
     }
 }

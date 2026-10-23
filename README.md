@@ -2,13 +2,13 @@
 
 一个轻巧的 Windows 桌面倒计时挂件。自定义提醒内容，让专注、休息和会议都有准时的提醒。
 
-**当前版本：v1.0 · Windows 10 / 11（64 位）**
+**当前版本：v1.1 · Windows 10 / 11（64 位）**
 
-[下载 v1.0](https://github.com/tatsenior/little-pause/releases/tag/v1.0) · [所有版本](https://github.com/tatsenior/little-pause/releases) · [反馈问题](https://github.com/tatsenior/little-pause/issues)
+[下载 v1.1](https://github.com/tatsenior/little-pause/releases/tag/v1.1) · [所有版本](https://github.com/tatsenior/little-pause/releases) · [反馈问题](https://github.com/tatsenior/little-pause/issues)
 
 ## 下载与运行
 
-1. 打开 [v1.0 发布页](https://github.com/tatsenior/little-pause/releases/tag/v1.0)，下载 `LittlePause-v1.0-win-x64.zip`。
+1. 打开 [v1.1 发布页](https://github.com/tatsenior/little-pause/releases/tag/v1.1)，下载 `LittlePause-v1.1-win-x64.zip`。
 2. 将压缩包解压到一个固定的本地文件夹。
 3. 双击 `小憩倒计时.exe`，无需安装 Python、Node.js 或 .NET SDK。
 4. 设置时长和提醒文字，点击“开始专注”。首次使用建议点击“测试通知”。
@@ -55,11 +55,13 @@
 
 此功能**默认关闭**，需要在设置中勾选“贴边自动收纳，鼠标靠近滑出”。
 
-开启后，将卡片拖到屏幕工作区边缘，鼠标移开约 0.65 秒后会平滑收纳，只露出窄边。鼠标靠近窄边时自动滑出。鼠标停留在卡片上、打开设置或操作下拉菜单时会保持展开。
+开启后，将卡片拖到屏幕工作区边缘，鼠标移开约 0.65 秒后会完全滑出屏幕，不显示残留卡片或阴影。鼠标靠近原位置对应的屏幕边缘时自动滑出。鼠标停留在卡片上、打开设置或操作下拉菜单时会保持展开。
 
 ### 背景与文字
 
 推荐使用 PNG、JPG 或 BMP 背景图片。图片会自动居中裁剪，配色随图片调整；选择图片后才能调节图片透明度和遮罩。选择预设主题会清除当前背景图。
+
+在背景设置下方的“控件背景透明度”中，可单独调节按钮、输入框和场景选择框底色。数值越高，底色越透明；0% 为默认底色，100% 为透明底色，文字保持原有清晰度。无需选择背景图也可以调节，支持恢复默认。
 
 数字较长时会自动缩小，以保证完整显示。字体设置仅影响挂件，不改变 Windows 通知自身的字体。
 
@@ -79,19 +81,35 @@
 
 **休眠、退出或关机后会怎样？**
 
-休眠期间无法弹窗，到期提醒会在唤醒后补发。退出或关机后程序不继续运行；下次打开时恢复计时，已经到期则补发提醒。v1.0 不提供自动开机启动、唤醒电脑或周期重复提醒。
+休眠期间无法弹窗，到期提醒会在唤醒后补发。退出或关机后程序不继续运行；下次打开时恢复计时，已经到期则补发提醒。可在设置中开启“开机自启动”，让程序在当前 Windows 用户登录后自动运行；不提供唤醒电脑或周期重复提醒。
 
 **如何更新？**
 
 先从托盘退出旧实例，再替换程序文件。个人设置保存在本地应用数据目录，替换程序会保留这些设置。
 
+### 开机自启动
+
+在设置中开启“开机自启动”后，程序会在当前用户登录 Windows 时自动运行；关闭开关即可移除自启动。默认关闭，无需管理员权限。请先把程序放在固定文件夹，移动后重新开关此选项以更新路径。若在 Windows 的“启动应用”中禁用了该程序，也需要在那里重新启用。
+
 ## 本地数据与卸载
 
 设置、背景副本和错误日志保存在 `%LOCALAPPDATA%\LittlePause`。程序不需要登录账号，提醒文案和背景保存在本机。
 
-卸载时先从托盘退出，再删除程序文件夹。若需完全清理，还可删除上述本地数据目录、开始菜单中的“小憩倒计时”快捷方式，以及当前用户注册表项 `HKCU\Software\Classes\AppUserModelId\LittlePause.Desktop.Timer`。
+卸载前先在设置中关闭“开机自启动”，再从托盘退出，再删除程序文件夹。若需完全清理，还可删除上述本地数据目录、开始菜单中的“小憩倒计时”快捷方式，以及当前用户注册表项 `HKCU\Software\Classes\AppUserModelId\LittlePause.Desktop.Timer`。
 
-## 从源码构建
+## GitHub 自动构建与发布
+
+后续项目构建由 [GitHub Actions](https://github.com/tatsenior/little-pause/actions/workflows/build.yml) 执行：
+
+- 推送到 `main` 或提交 Pull Request：在 Windows 环境自动编译、核对版本并上传可下载构建产物。
+- 在 Actions 页面选择 **Build and release → Run workflow**：手动构建指定分支。
+- 推送 `v*` 版本标签：自动构建 ZIP、生成 SHA-256，并从 `CHANGELOG.md` 提取对应版本日志并发布 GitHub Release。
+
+发布前同步修改 `VERSION`、`src/AssemblyInfo.cs` 和 `CHANGELOG.md`，然后提交代码并推送对应版本标签。标签和程序版本不一致时，工作流会停止发布。
+
+详细变化见 [更新日志](CHANGELOG.md)。发布包来自云端构建，不依赖开发者本机的程序文件。
+
+### 可选：本地源码构建
 
 在 Windows 中克隆仓库，进入项目目录后运行：
 
